@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>课程表生成工具</title>
+    <title>瑜美人瑜伽馆课程表生成工具</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
@@ -123,8 +123,6 @@
             border-radius: 15px;
             border: 2px solid #e9ecef;
             min-height: 500px;
-            max-height: calc(100vh - 200px);
-            overflow-y: auto;
         }
 
         .preview-section h2 {
@@ -263,68 +261,45 @@
             }
 
             .header {
-                padding: 20px 15px;
+                padding: 15px 10px;
             }
 
             .header h1 {
-                font-size: 24px;
+                font-size: 20px;
+                margin-bottom: 5px;
+            }
+
+            .header p {
+                font-size: 12px;
             }
 
             .content {
-                padding: 15px;
-                gap: 15px;
+                padding: 10px;
+                gap: 10px;
             }
 
             .input-section {
-                padding: 15px;
+                padding: 10px;
+            }
+
+            .input-section h2 {
+                font-size: 16px;
+                margin-bottom: 10px;
             }
 
             .input-section textarea {
-                min-height: 300px;
+                min-height: 200px;
                 font-size: 14px;
+                padding: 10px;
             }
 
             .preview-section {
-                padding: 15px;
-                max-height: none;
+                padding: 10px;
             }
 
-            #scheduleTable {
-                font-size: 11px;
-            }
-
-            #scheduleTable th {
-                padding: 8px 4px;
-                font-size: 11px;
-            }
-
-            #scheduleTable td {
-                padding: 6px 4px;
-                font-size: 10px;
-            }
-
-            .teacher-name {
-                width: 70px;
-                padding-right: 6px;
-                font-size: 10px;
-            }
-
-            .course-name {
-                font-size: 10px;
-            }
-
-            .button-group {
-                flex-direction: column;
-            }
-
-            button {
-                width: 100%;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .header h1 {
-                font-size: 20px;
+            .preview-section h2 {
+                font-size: 16px;
+                margin-bottom: 10px;
             }
 
             #scheduleTable {
@@ -339,16 +314,83 @@
             #scheduleTable td {
                 padding: 5px 3px;
                 font-size: 9px;
+                line-height: 1.3;
             }
 
             .teacher-name {
-                width: 60px;
-                padding-right: 5px;
+                width: 55px;
+                padding-right: 4px;
                 font-size: 9px;
             }
 
             .course-name {
                 font-size: 9px;
+            }
+
+            .button-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            button {
+                width: 100%;
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            /* 标题字体缩小 */
+            #scheduleContainer > div:first-child {
+                font-size: 16px !important;
+                margin-bottom: 10px !important;
+            }
+
+            /* 固定说明部分字体缩小 */
+            #scheduleContainer > div:last-child {
+                margin-top: 15px !important;
+                padding: 10px !important;
+                font-size: 10px !important;
+            }
+
+            #scheduleContainer > div:last-child h3 {
+                font-size: 11px !important;
+                margin-top: 8px !important;
+                margin-bottom: 5px !important;
+            }
+
+            #scheduleContainer > div:last-child p {
+                font-size: 9px !important;
+                line-height: 1.4 !important;
+                margin-bottom: 8px !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 18px;
+            }
+
+            #scheduleTable {
+                font-size: 9px;
+            }
+
+            #scheduleTable th {
+                padding: 5px 2px;
+                font-size: 9px;
+            }
+
+            #scheduleTable td {
+                padding: 4px 2px;
+                font-size: 8px;
+            }
+
+            .teacher-name {
+                width: 50px;
+                padding-right: 3px;
+                font-size: 8px;
+            }
+
+            .course-name {
+                font-size: 8px;
             }
         }
     </style>
@@ -945,27 +987,35 @@
             // 检测是否为移动设备
             const isMobile = window.innerWidth <= 768;
             
-            // 移动端使用更高的scale以获得更好的质量，但限制最大宽度
+            // 移动端：使用固定宽度，确保图片能在一页显示
+            // PC端：使用实际宽度
+            const targetWidth = isMobile ? 600 : container.scrollWidth;
+            
             const options = {
                 backgroundColor: '#ffffff',
-                scale: isMobile ? 3 : 2,
+                scale: isMobile ? 2 : 2,
                 logging: false,
                 useCORS: true,
-                width: isMobile ? Math.min(container.scrollWidth, 800) : container.scrollWidth,
-                height: container.scrollHeight
+                width: targetWidth,
+                windowWidth: isMobile ? 600 : window.innerWidth,
+                windowHeight: window.innerHeight
             };
             
             html2canvas(container, options).then(canvas => {
-                // 如果是移动端，可以进一步优化图片尺寸
                 let finalCanvas = canvas;
-                if (isMobile && canvas.width > 800) {
-                    const ratio = 800 / canvas.width;
-                    const newCanvas = document.createElement('canvas');
-                    newCanvas.width = 800;
-                    newCanvas.height = canvas.height * ratio;
-                    const ctx = newCanvas.getContext('2d');
-                    ctx.drawImage(canvas, 0, 0, newCanvas.width, newCanvas.height);
-                    finalCanvas = newCanvas;
+                
+                // 移动端：如果图片太长，按比例缩小到合适尺寸（确保能一页显示）
+                if (isMobile) {
+                    const maxHeight = 2000; // 最大高度，确保能在一页显示
+                    if (canvas.height > maxHeight) {
+                        const ratio = maxHeight / canvas.height;
+                        const newCanvas = document.createElement('canvas');
+                        newCanvas.width = canvas.width * ratio;
+                        newCanvas.height = maxHeight;
+                        const ctx = newCanvas.getContext('2d');
+                        ctx.drawImage(canvas, 0, 0, newCanvas.width, newCanvas.height);
+                        finalCanvas = newCanvas;
+                    }
                 }
                 
                 const link = document.createElement('a');
