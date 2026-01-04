@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课程表生成工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', 'SimHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+
+        .input-section h2 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .input-section textarea {
+            width: 100%;
+            min-height: 400px;
+            padding: 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        .input-section textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .preview-section {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            min-height: 500px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+
+        .preview-section h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        #scheduleTable {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            font-size: 13px;
+        }
+
+        #scheduleTable thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        #scheduleTable th {
+            padding: 10px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        #scheduleTable td {
+            padding: 8px 8px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 12px;
+            line-height: 1.4;
+            position: relative;
+        }
+
+        #scheduleTable td:empty {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        #scheduleTable td.editable {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #scheduleTable td.editable:hover {
+            background-color: #f0f0f0;
+        }
+
+        #scheduleTable td.editable.editing {
+            background-color: #fff3cd;
+        }
+
+        .class-cell-content {
+            display: table;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .teacher-name {
+            color: #667eea;
+            font-weight: 600;
+            display: table-cell;
+            width: 100px;
+            text-align: right;
+            padding-right: 10px;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .course-name {
+            color: #495057;
+            display: table-cell;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .rest-text {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        #scheduleTable tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        #scheduleTable tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .example-text {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #1976D2;
+        }
+
+        .example-text strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 1024px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 课程表生成工具</h1>
+            <p>输入课程信息，自动生成精美课程表</p>
+        </div>
+        
+        <div class="content">
+            <div class="input-section">
+                <h2>📝 输入课程信息</h2>
+                <textarea id="courseInput" placeholder="请输入课程信息，格式如下：
+
+4月7号到4月17号课程
+7号星期一
+中午1点
+脊柱理疗
+全鸿老师
+晚上7点半
+肩颈理疗
+彬彬老师
+8号星期二
+中午1点
+站立平衡瑜伽
+杨琴老师
+..."></textarea>
+                
+                <div class="button-group">
+                    <button class="btn-primary" onclick="generateSchedule()">生成课程表</button>
+                    <button class="btn-secondary" onclick="exportImage()">导出图片</button>
+                </div>
+                
+                <div class="example-text">
+                    <strong>💡 输入格式说明：</strong>
+                    第一行：日期范围（如：4月7号到4月17号课程）<br>
+                    日期行：X号星期X（如：7号星期一）<br>
+                    时间行：中午1点 或 晚上7点半<br>
+                    课程名：课程名称<br>
+                    老师：XXX老师 或 老师：XXX
+                </div>
+            </div>
+            
+            <div class="preview-section">
+                <h2>📊 课程表预览</h2>
+                <div id="scheduleContainer">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p>请在左侧输入课程信息，然后点击"生成课程表"</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let scheduleData = null;
+
+        // 星期映射
+        const weekdayMap = {
+            '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '日': 7, '天': 7
+        };
+
+        function parseSchedule(inputText) {
+            const lines = inputText.trim().split('\n').map(line => line.trim()).filter(line => line);
+            const info = {
+                startDate: '',
+                endDate: '',
+                month: 0,
+                courses: []
+            };
+
+            const courseMap = {};
+            let currentDate = 0;
+            let currentWeekday = '';
+            let currentTimeSlot = '';
+            let currentClass = '';
+            let currentTeacher = '';
+
+            // 解析日期范围
+            const dateRangeMatch = inputText.match(/(\d+)月(\d+)号到(\d+)月(\d+)号/);
+            if (dateRangeMatch) {
+                const startMonth = parseInt(dateRangeMatch[1]);
+                const startDay = parseInt(dateRangeMatch[2]);
+                const endMonth = parseInt(dateRangeMatch[3]);
+                const endDay = parseInt(dateRangeMatch[4]);
+                info.month = startMonth;
+                info.startDate = `${startMonth}月${startDay}日`;
+                info.endDate = `${endMonth}月${endDay}日`;
+            }
+
+            // 解析课程信息
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // 匹配日期和星期
+                const dateMatch = line.match(/(\d+)号(星期[一二三四五六日天])/);
+                if (dateMatch) {
+                    // 保存上一个时间段的课程
+                    if (currentDate > 0 && currentTimeSlot && currentClass) {
+                        if (!courseMap[currentDate]) {
+                            courseMap[currentDate] = {
+                                date: currentDate,
+                                weekday: currentWeekday,
+                                noonClass: '',
+                                eveningClass: ''
+                            };
+                        }
+                        const classText = currentTeacher ? `${currentTeacher} ${currentClass}` : currentClass;
+                        if (currentTimeSlot === '中午') {
+                            courseMap[currentDate].noonClass = classText;
+                        } else if (currentTimeSlot === '晚上') {
+                            courseMap[currentDate].eveningClass = classText;
+                        }
+                    }
+
+                    currentDate = parseInt(dateMatch[1]);
+                    currentWeekday = dateMatch[2];
+                    if (!courseMap[currentDate]) {
+                        courseMap[currentDate] = {
+                            date: currentDate,
+                            weekday: currentWeekday,
+                            noonClass: '',
+                            eveningClass: ''
+                        };
+                    } else {
+                        courseMap[currentDate].weekday = currentWeekday;
+                    }
+
+                    currentTimeSlot = '';
+                    currentClass = '';
+                    currentTeacher = '';
+                    continue;
+                }
+
+                // 匹配时间
+                const timeMatch = line.match(/(中午|晚上)/);
+                if (timeMatch) {
+                    // 保存上一个时间段的课程
+                    if (currentDate > 0 && currentTimeSlot && currentClass) {
+                        if (!courseMap[currentDate]) {
+                            courseMap[currentDate] = {
+                                date: currentDate,
+                                weekday: currentWeekday,
+                                noonClass: '',
+                                eveningClass: ''
+                            };
+                        }
+                        const classText = currentTeacher ? `${currentTeacher} ${currentClass}` : currentClass;
+                        if (currentTimeSlot === '中午') {
+                            courseMap[currentDate].noonClass = classText;
+                        } else if (currentTimeSlot === '晚上') {
+                            courseMap[currentDate].eveningClass = classText;
+                        }
+                    }
+
+                    currentTimeSlot = timeMatch[1];
+                    currentClass = '';
+                    currentTeacher = '';
+                    continue;
+                }
+
+                // 匹配老师
+                const teacherMatch1 = line.match(/^([^：:]+)老师$/);
+                if (teacherMatch1) {
+                    currentTeacher = teacherMatch1[1].trim() + '老师';
+                    // 如果已经有课程名，立即保存
+                    if (currentDate > 0 && currentTimeSlot && currentClass) {
+                        if (!courseMap[currentDate]) {
+                            courseMap[currentDate] = {
+                                date: currentDate,
+                                weekday: currentWeekday,
+                                noonClass: '',
+                                eveningClass: ''
+                            };
+                        }
+                        const classText = `${currentTeacher} ${currentClass}`;
+                        if (currentTimeSlot === '中午') {
+                            courseMap[currentDate].noonClass = classText;
+                        } else if (currentTimeSlot === '晚上') {
+                            courseMap[currentDate].eveningClass = classText;
+                        }
+                        courseMap[currentDate] = courseMap[currentDate];
+                        currentClass = '';
+                        currentTeacher = '';
+                    }
+                    continue;
+                }
+
+                const teacherMatch2 = line.match(/老师[：:](.*)/);
+                if (teacherMatch2) {
+                    currentTeacher = teacherMatch2[1].trim() + '老师';
+                    // 如果已经有课程名，立即保存
+                    if (currentDate > 0 && currentTimeSlot && currentClass) {
+                        if (!courseMap[currentDate]) {
+                            courseMap[currentDate] = {
+                                date: currentDate,
+                                weekday: currentWeekday,
+                                noonClass: '',
+                                eveningClass: ''
+                            };
+                        }
+                        const classText = `${currentTeacher} ${currentClass}`;
+                        if (currentTimeSlot === '中午') {
+                            courseMap[currentDate].noonClass = classText;
+                        } else if (currentTimeSlot === '晚上') {
+                            courseMap[currentDate].eveningClass = classText;
+                        }
+                        currentClass = '';
+                        currentTeacher = '';
+                    }
+                    continue;
+                }
+
+                // 其他情况作为课程名
+                if (currentTimeSlot && !line.includes('课程') && !line.includes('号') && !line.includes('星期') && !line.includes('老师')) {
+                    currentClass = line;
+                }
+            }
+
+            // 处理最后一条记录
+            if (currentDate > 0 && currentTimeSlot && currentClass) {
+                if (!courseMap[currentDate]) {
+                    courseMap[currentDate] = {
+                        date: currentDate,
+                        weekday: currentWeekday,
+                        noonClass: '',
+                        eveningClass: ''
+                    };
+                }
+                const classText = currentTeacher ? `${currentTeacher} ${currentClass}` : currentClass;
+                if (currentTimeSlot === '中午') {
+                    courseMap[currentDate].noonClass = classText;
+                } else if (currentTimeSlot === '晚上') {
+                    courseMap[currentDate].eveningClass = classText;
+                }
+            }
+
+            // 转换为数组并按日期排序
+            const coursesWithDate = [];
+            for (let date = 1; date <= 31; date++) {
+                if (courseMap[date]) {
+                    coursesWithDate.push(courseMap[date]);
+                }
+            }
+
+            // 按星期分组并合并（解决重复星期的问题）
+            // 注意：只使用 '日' 代表星期天，不要同时处理 '日' 和 '天'
+            const weekdayOrder = ['一', '二', '三', '四', '五', '六', '日'];
+            const weekdayGroups = {};
+            const weekdayToNumber = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '日': 7, '天': 7 };
+            
+            // 按星期分组，统一处理"日"和"天"为"日"
+            coursesWithDate.forEach(course => {
+                const weekdayMatch = course.weekday.match(/星期([一二三四五六日天])/);
+                if (weekdayMatch) {
+                    const wd = weekdayMatch[1];
+                    // 统一处理"日"和"天"为同一个键"日"
+                    const normalizedWd = (wd === '日' || wd === '天') ? '日' : wd;
+                    if (!weekdayGroups[normalizedWd]) {
+                        weekdayGroups[normalizedWd] = [];
+                    }
+                    weekdayGroups[normalizedWd].push(course);
+                }
+            });
+            
+            // 推断缺失的日期：根据已有的日期和星期，计算缺失的日期
+            if (coursesWithDate.length > 0) {
+                // 找到第一个有日期的课程，作为基准
+                const firstCourse = coursesWithDate.find(c => c.date > 0);
+                if (firstCourse) {
+                    const firstDate = firstCourse.date;
+                    const firstWeekdayMatch = firstCourse.weekday.match(/星期([一二三四五六日天])/);
+                    if (firstWeekdayMatch) {
+                        const firstWeekdayNum = weekdayToNumber[firstWeekdayMatch[1]] || weekdayToNumber[firstWeekdayMatch[1] === '天' ? '日' : firstWeekdayMatch[1]];
+                        
+                        // 为每个星期计算应该的日期
+                        weekdayOrder.forEach(wd => {
+                            const weekdayNum = weekdayToNumber[wd];
+                            if (!weekdayGroups[wd] || weekdayGroups[wd].length === 0) {
+                                // 计算这个星期应该的日期
+                                const daysDiff = weekdayNum - firstWeekdayNum;
+                                const calculatedDate = firstDate + daysDiff;
+                                
+                                // 如果计算的日期在合理范围内（1-31），且没有冲突
+                                if (calculatedDate >= 1 && calculatedDate <= 31 && !courseMap[calculatedDate]) {
+                                    weekdayGroups[wd] = [{
+                                        date: calculatedDate,
+                                        weekday: wd === '日' ? '星期天' : `星期${wd}`,
+                                        noonClass: '',
+                                        eveningClass: ''
+                                    }];
+                                }
+                            } else {
+                                // 如果已有数据但没有日期，尝试推断
+                                weekdayGroups[wd].forEach(course => {
+                                    if (course.date === 0) {
+                                        const daysDiff = weekdayNum - firstWeekdayNum;
+                                        const calculatedDate = firstDate + daysDiff;
+                                        if (calculatedDate >= 1 && calculatedDate <= 31 && !courseMap[calculatedDate]) {
+                                            course.date = calculatedDate;
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+            
+            // 合并每个星期的数据（优先保留有日期的，合并课程数据）
+            const sortedCourses = [];
+            for (let wd of weekdayOrder) {
+                if (weekdayGroups[wd] && weekdayGroups[wd].length > 0) {
+                    // 合并同一天的所有课程
+                    const merged = {
+                        date: 0,
+                        weekday: wd === '日' ? '星期天' : `星期${wd}`,
+                        noonClass: '',
+                        eveningClass: ''
+                    };
+                    
+                    // 优先使用有日期的，合并所有课程
+                    weekdayGroups[wd].forEach(course => {
+                        if (course.date > 0 && merged.date === 0) {
+                            merged.date = course.date;
+                        }
+                        if (course.noonClass && !merged.noonClass) {
+                            merged.noonClass = course.noonClass;
+                        }
+                        if (course.eveningClass && !merged.eveningClass) {
+                            merged.eveningClass = course.eveningClass;
+                        }
+                    });
+                    
+                    sortedCourses.push(merged);
+                } else {
+                    // 只有当这个星期完全没有数据时，才创建空的（不显示日期）
+                    const weekdayName = wd === '日' ? '星期天' : `星期${wd}`;
+                    sortedCourses.push({
+                        date: 0,  // 0表示没有日期，渲染时不显示
+                        weekday: weekdayName,
+                        noonClass: '',
+                        eveningClass: ''
+                    });
+                }
+            }
+
+            info.courses = sortedCourses;
+            return info;
+        }
+
+        function generateSchedule() {
+            const inputText = document.getElementById('courseInput').value.trim();
+            if (!inputText) {
+                alert('请输入课程信息！');
+                return;
+            }
+
+            try {
+                scheduleData = parseSchedule(inputText);
+                if (scheduleData.courses.length === 0) {
+                    alert('未解析到任何课程信息，请检查输入格式！');
+                    return;
+                }
+
+                renderSchedule(scheduleData);
+            } catch (error) {
+                alert('解析错误：' + error.message);
+                console.error(error);
+            }
+        }
+
+        function renderSchedule(info) {
+            const container = document.getElementById('scheduleContainer');
+            
+            const title = `瑜美人瑜伽馆${info.startDate}-${info.endDate}瑜伽(大课)课程表`;
+            
+            let html = `
+                <div style="text-align: center; margin-bottom: 15px; font-size: 20px; font-weight: bold; color: #495057;">
+                    ${title}
+                </div>
+                <table id="scheduleTable">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>星期</th>
+                            <th>中午1:00-2:00</th>
+                            <th>晚上7:30-8:30</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            info.courses.forEach((course, index) => {
+                // 解析老师和课程
+                const parseClass = (classText) => {
+                    if (!classText || classText.trim() === '') {
+                        return { teacher: '', course: '', fullText: '' };
+                    }
+                    // 匹配格式：XXX老师 课程名 或 老师：XXX 课程名
+                    const match1 = classText.match(/^(.+?老师)\s+(.+)$/);
+                    const match2 = classText.match(/^老师[：:](.+?)\s+(.+)$/);
+                    
+                    if (match1) {
+                        return { teacher: match1[1], course: match1[2], fullText: classText };
+                    } else if (match2) {
+                        return { teacher: match2[1] + '老师', course: match2[2], fullText: classText };
+                    } else {
+                        // 如果没有老师，整个作为课程
+                        return { teacher: '', course: classText, fullText: classText };
+                    }
+                };
+
+                const noonParsed = parseClass(course.noonClass);
+                const eveningParsed = parseClass(course.eveningClass);
+                
+                // 格式化显示（老师和课程用不同颜色，统一对齐）
+                const formatClass = (parsed) => {
+                    if (!parsed.fullText) {
+                        return '<span class="rest-text">休息</span>';
+                    }
+                    if (parsed.teacher && parsed.course) {
+                        return `<div class="class-cell-content"><span class="teacher-name">${parsed.teacher}</span><span class="course-name">${parsed.course}</span></div>`;
+                    } else {
+                        return `<span class="course-name">${parsed.fullText}</span>`;
+                    }
+                };
+
+                const noonHtml = formatClass(noonParsed);
+                const eveningHtml = formatClass(eveningParsed);
+                
+                // 如果date为0，不显示日期
+                const dateDisplay = course.date > 0 ? course.date : '';
+                
+                html += `
+                    <tr>
+                        <td>${dateDisplay}</td>
+                        <td>${course.weekday}</td>
+                        <td class="editable" data-row="${index}" data-slot="noon" data-original="${noonParsed.fullText || ''}">${noonHtml}</td>
+                        <td class="editable" data-row="${index}" data-slot="evening" data-original="${eveningParsed.fullText || ''}">${eveningHtml}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; font-size: 12px;">
+                    <h3 style="color: #667eea; margin-bottom: 8px; font-size: 14px; font-weight: bold;">2-5人小班特色课程(均可一对一私教) 时间:随时约课</h3>
+                    <p style="color: #495057; line-height: 1.6; font-size: 11px; margin-bottom: 12px;">
+                        腰椎,肩颈,背部,骨盆,脊柱,足膝踝,开肩,开胸,开胯,后弯,竖叉,横叉,倒立,椅子瑜伽,轮瑜伽,球瑜伽,普拉提圈,普拉提塑形系列(臀腿,腰腹,肩背,手臂),更年期调理,气血调理,祛湿,暖宫,零基础瑜伽
+                    </p>
+                    
+                    <h3 style="color: #667eea; margin-top: 12px; margin-bottom: 8px; font-size: 14px; font-weight: bold;">孕产瑜伽一对一私教课程(时间:随时约课)</h3>
+                    <p style="color: #495057; line-height: 1.6; font-size: 11px; margin-bottom: 12px;">
+                        备孕,孕中,产后修复及塑形
+                    </p>
+                    
+                    <h3 style="color: #667eea; margin-top: 12px; margin-bottom: 8px; font-size: 14px; font-weight: bold;">理疗项目一对一私教课程(时间:随时约课)</h3>
+                    <p style="color: #495057; line-height: 1.6; font-size: 11px; margin-bottom: 12px;">
+                        颈椎病,肩周炎,足膝,肘腕,圆肩驼背,富贵包,头前引,脊柱侧弯,腰椎间盘突出,腰肌劳损,骨盆前后倾,高低肩,肋骨外翻,长短腿,X型腿,O型腿,祛湿,气血调理,更年期调理,脏腑调理
+                    </p>
+                    
+                    <h3 style="color: #667eea; margin-top: 12px; margin-bottom: 8px; font-size: 14px; font-weight: bold;">减脂塑形班(上课老师:慧慧)</h3>
+                    <p style="color: #495057; line-height: 1.6; font-size: 11px;">
+                        上课时间:星期二6点10分,15节课为1期<br>
+                        上课时间:星期四6点10分,15节课为1期
+                    </p>
+                </div>
+            `;
+
+            container.innerHTML = html;
+            
+            // 添加编辑功能
+            setupEditableCells();
+        }
+
+        function setupEditableCells() {
+            const editableCells = document.querySelectorAll('#scheduleTable td.editable');
+            
+            editableCells.forEach(cell => {
+                cell.addEventListener('click', function() {
+                    if (this.classList.contains('editing')) return;
+                    
+                    const originalText = this.getAttribute('data-original') || '';
+                    const row = parseInt(this.getAttribute('data-row'));
+                    const slot = this.getAttribute('data-slot');
+                    
+                    // 创建输入框
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = originalText;
+                    input.style.width = '100%';
+                    input.style.border = '2px solid #667eea';
+                    input.style.padding = '5px';
+                    input.style.fontSize = '12px';
+                    input.style.textAlign = 'center';
+                    input.style.borderRadius = '4px';
+                    
+                    // 保存原始内容
+                    const originalHTML = this.innerHTML;
+                    this.classList.add('editing');
+                    this.innerHTML = '';
+                    this.appendChild(input);
+                    input.focus();
+                    input.select();
+                    
+                    // 保存编辑
+                    const saveEdit = () => {
+                        const newValue = input.value.trim();
+                        this.classList.remove('editing');
+                        
+                        // 更新scheduleData
+                        if (scheduleData && scheduleData.courses[row]) {
+                            if (slot === 'noon') {
+                                scheduleData.courses[row].noonClass = newValue;
+                            } else if (slot === 'evening') {
+                                scheduleData.courses[row].eveningClass = newValue;
+                            }
+                            
+                            // 更新data-original
+                            this.setAttribute('data-original', newValue);
+                            
+                            // 重新渲染这个单元格
+                            const parseClass = (classText) => {
+                                if (!classText || classText.trim() === '') {
+                                    return { teacher: '', course: '', fullText: '' };
+                                }
+                                const match1 = classText.match(/^(.+?老师)\s+(.+)$/);
+                                const match2 = classText.match(/^老师[：:](.+?)\s+(.+)$/);
+                                
+                                if (match1) {
+                                    return { teacher: match1[1], course: match1[2], fullText: classText };
+                                } else if (match2) {
+                                    return { teacher: match2[1] + '老师', course: match2[2], fullText: classText };
+                                } else {
+                                    return { teacher: '', course: classText, fullText: classText };
+                                }
+                            };
+
+                            const parsed = parseClass(newValue);
+                            const formatClass = (parsed) => {
+                                if (!parsed.fullText) {
+                                    return '<span class="rest-text">休息</span>';
+                                }
+                                if (parsed.teacher && parsed.course) {
+                                    return `<div class="class-cell-content"><span class="teacher-name">${parsed.teacher}</span><span class="course-name">${parsed.course}</span></div>`;
+                                } else {
+                                    return `<span class="course-name">${parsed.fullText}</span>`;
+                                }
+                            };
+
+                            this.innerHTML = formatClass(parsed);
+                        } else {
+                            this.innerHTML = originalHTML;
+                        }
+                    };
+                    
+                    // 按Enter保存，按Esc取消
+                    input.addEventListener('blur', saveEdit);
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            saveEdit();
+                        } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            this.classList.remove('editing');
+                            cell.innerHTML = originalHTML;
+                        }
+                    });
+                });
+            });
+        }
+
+        function exportImage() {
+            if (!scheduleData) {
+                alert('请先生成课程表！');
+                return;
+            }
+
+            const container = document.getElementById('scheduleContainer');
+            
+            html2canvas(container, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                logging: false,
+                useCORS: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `课程表_${scheduleData.startDate}-${scheduleData.endDate}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(error => {
+                alert('导出失败：' + error.message);
+                console.error(error);
+            });
+        }
+
+        // 示例数据（可选）
+        document.addEventListener('DOMContentLoaded', function() {
+            const exampleText = `4月7号到4月17号课程
+7号星期一
+中午1点
+脊柱理疗
+全鸿老师
+晚上7点半
+肩颈理疗
+彬彬老师
+8号星期二
+中午1点
+站立平衡瑜伽
+杨琴老师
+晚上7点 
+理疗瑜伽
+杨琴老师
+9号星期三
+中午1点
+肩颈理疗
+彬彬老师
+晚上7点半
+瑜伽：伸展流
+老师：徐永超
+10号星期四
+中午1点
+腰腹塑型
+周进老师
+晚上7点30
+艾扬格瑜伽
+杨琴老师
+11号星期五
+中午1点
+哈他瑜伽
+全鸿老师
+晚上7点半
+瑜伽：平衡瑜伽
+老师：徐永超
+13号星期天
+晚上7点半
+腰腹塑形
+周进老师`;
+
+            // 可以取消注释下面这行来预填充示例数据
+            // document.getElementById('courseInput').value = exampleText;
+        });
+    </script>
+</body>
+</html>
+
