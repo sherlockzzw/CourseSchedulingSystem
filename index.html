@@ -2,7 +2,9 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>课程表生成工具</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -248,6 +250,105 @@
         @media (max-width: 1024px) {
             .content {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 10px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .content {
+                padding: 15px;
+                gap: 15px;
+            }
+
+            .input-section {
+                padding: 15px;
+            }
+
+            .input-section textarea {
+                min-height: 300px;
+                font-size: 14px;
+            }
+
+            .preview-section {
+                padding: 15px;
+                max-height: none;
+            }
+
+            #scheduleTable {
+                font-size: 11px;
+            }
+
+            #scheduleTable th {
+                padding: 8px 4px;
+                font-size: 11px;
+            }
+
+            #scheduleTable td {
+                padding: 6px 4px;
+                font-size: 10px;
+            }
+
+            .teacher-name {
+                width: 70px;
+                padding-right: 6px;
+                font-size: 10px;
+            }
+
+            .course-name {
+                font-size: 10px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 20px;
+            }
+
+            #scheduleTable {
+                font-size: 10px;
+            }
+
+            #scheduleTable th {
+                padding: 6px 3px;
+                font-size: 10px;
+            }
+
+            #scheduleTable td {
+                padding: 5px 3px;
+                font-size: 9px;
+            }
+
+            .teacher-name {
+                width: 60px;
+                padding-right: 5px;
+                font-size: 9px;
+            }
+
+            .course-name {
+                font-size: 9px;
             }
         }
     </style>
@@ -836,15 +937,40 @@
 
             const container = document.getElementById('scheduleContainer');
             
-            html2canvas(container, {
+            // 移除编辑状态
+            document.querySelectorAll('#scheduleTable td.editing').forEach(cell => {
+                cell.classList.remove('editing');
+            });
+            
+            // 检测是否为移动设备
+            const isMobile = window.innerWidth <= 768;
+            
+            // 移动端使用更高的scale以获得更好的质量，但限制最大宽度
+            const options = {
                 backgroundColor: '#ffffff',
-                scale: 2,
+                scale: isMobile ? 3 : 2,
                 logging: false,
-                useCORS: true
-            }).then(canvas => {
+                useCORS: true,
+                width: isMobile ? Math.min(container.scrollWidth, 800) : container.scrollWidth,
+                height: container.scrollHeight
+            };
+            
+            html2canvas(container, options).then(canvas => {
+                // 如果是移动端，可以进一步优化图片尺寸
+                let finalCanvas = canvas;
+                if (isMobile && canvas.width > 800) {
+                    const ratio = 800 / canvas.width;
+                    const newCanvas = document.createElement('canvas');
+                    newCanvas.width = 800;
+                    newCanvas.height = canvas.height * ratio;
+                    const ctx = newCanvas.getContext('2d');
+                    ctx.drawImage(canvas, 0, 0, newCanvas.width, newCanvas.height);
+                    finalCanvas = newCanvas;
+                }
+                
                 const link = document.createElement('a');
                 link.download = `课程表_${scheduleData.startDate}-${scheduleData.endDate}.png`;
-                link.href = canvas.toDataURL('image/png');
+                link.href = finalCanvas.toDataURL('image/png');
                 link.click();
             }).catch(error => {
                 alert('导出失败：' + error.message);
